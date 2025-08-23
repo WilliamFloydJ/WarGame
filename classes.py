@@ -1,10 +1,9 @@
-import numpy as np
 import math
 import pygame
 from screen import space_size
 from functions import getLeader, getSubs
 from names import generate_name
-from utils import tupleAdd
+from utils import tupleAdd,emptyList
 
 border_color = (26, 14, 1)
 space_color = (145, 75, 0)
@@ -54,12 +53,13 @@ class Space:
         pygame.draw.rect(self.map.surface,border_color,self.rect,border_thickness)      
 
 class Team:
-    def __init__(self, color, name:str, map:Map, soldiers = [], soldiers_create = [], squads = []):
+    def __init__(self, color, name:str, map:Map, soldiers = None, soldiers_create = [], squads = None):
         self.color = color
         self.name = name
-        self.soldiers = soldiers
-        self.squads = squads
         self.map = map
+        self.soldiers = emptyList(soldiers)
+        self.squads = emptyList(squads)
+
         for squad_create in soldiers_create:
             squad = Squad([])
             for pos in squad_create:
@@ -81,7 +81,7 @@ class Squad:
         
 
 class Soldier:
-    def __init__(self,pos:tuple, map:Map, team:Team, rank:int, squad, orders = []):
+    def __init__(self,pos:tuple, map:Map, team:Team, rank:int, squad, orders = None):
         self.pos = pos
         self.Map = map
         self.map = map.map
@@ -91,7 +91,7 @@ class Soldier:
         self.squad = squad
         self.rank = rank
         self.name = generate_name()
-        self.orders = orders
+        self.orders = emptyList(orders)      
 
     def __str__(self):
         return f" {self.name} {tupleAdd(self.pos,(1,1))} {self.team.name} "
@@ -122,11 +122,18 @@ class Soldier:
 
     def give_orders(self):
         for sub in getSubs(self,self.squad.soldiers):
-            sub.orders.extend(self.orders)
+            orders = self.orders.copy()
+            sub.orders.extend(orders)
 
     def do_orders(self):
         for order in self.orders:
-            order()
+            getattr(self,order.name)(order.prop)
+            print(self.orders)
+
+class Order:
+    def __init__(self, name, prop):
+        self.name = name
+        self.prop = prop
 
 
             
