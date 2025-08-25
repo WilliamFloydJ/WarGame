@@ -1,5 +1,4 @@
-import math
-import pygame
+import math, random, pygame, asyncio
 from screen import space_size
 from functions import getLeader, getSubs
 from names import generate_name
@@ -91,7 +90,8 @@ class Soldier:
         self.squad = squad
         self.rank = rank
         self.name = generate_name()
-        self.orders = emptyList(orders)      
+        self.orders = emptyList(orders)
+        self.speed = random.uniform(1,3) 
 
     def __str__(self):
         return f" {self.name} {tupleAdd(self.pos,(1,1))} {self.team.name} "
@@ -111,7 +111,7 @@ class Soldier:
     def get_subs(self):
         return getSubs(self,self.squad.soldiers)
     
-    def move(self,amount:tuple):
+    async def move(self,amount:tuple):
         x , y = self.pos
         self.Map[x,y] = Space((x,y),self.Map)
 
@@ -119,21 +119,38 @@ class Soldier:
 
         x , y = self.pos
         self.Map[x,y] = self
+        await asyncio.sleep(self.speed)
 
     def give_orders(self):
         for sub in getSubs(self,self.squad.soldiers):
             orders = self.orders.copy()
             sub.orders.extend(orders)
 
-    def do_orders(self):
+    async def do_orders(self):
         for order in self.orders:
-            getattr(self,order.name)(order.prop)
-            print(self.orders)
+            await getattr(self,order.name)(*order.prop)
 
 class Order:
     def __init__(self, name, prop):
         self.name = name
         self.prop = prop
+
+class Bullet:
+    def __init__(self, surface, startPos, endPos, speed = 1, power = 1):
+        self.surface = surface
+        self.rect = pygame.Rect(startPos[0],startPos[1],1,1)
+        self.startPos = startPos
+        self.endPos = endPos
+        self.speed = speed
+        self.power = power
+    
+    def move(self):
+        self.rect.x += self.speed
+        self.rect.y += self.speed
+
+    def draw(self):
+        pygame.draw.rect(self.surface,(255,255,255),self.rect)
+
 
 
             
