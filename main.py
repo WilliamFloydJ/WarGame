@@ -3,6 +3,7 @@ import asyncio
 import copy
 from classes import Soldier, Map, Team, Order
 from screen import screenDim, map_len
+V2 = pygame.Vector2
 
 pygame.init()
 pygame.display.set_caption("War Game")
@@ -15,7 +16,7 @@ map = Map(map_len[0],map_len[0],screen)
 US_Squads = [[(2,1),(4,1),(6,1),(8,1),(10,1),(12,1)]]
 US = Team((87, 179, 2),"US",map,[],US_Squads)
 US.squads[0].soldiers[0].rank = 1
-US.squads[0].soldiers[0].orders = [Order("move",[(0,1)]),Order("move",[(0,1)])]
+US.squads[0].soldiers[0].orders = [Order("move",[(0,1)]),Order("shoot",[V2(80,80)])]
 US.squads[0].soldiers[0].give_orders()
 async def run():
    await asyncio.gather(*(s.do_orders() for s in US.squads[0].soldiers))

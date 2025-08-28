@@ -1,8 +1,9 @@
 import math, random, pygame, asyncio
-from screen import space_size
+from screen import space_size,screenDim
 from functions import getLeader, getSubs
 from names import generate_name
 from utils import tupleAdd,emptyList
+V2 = pygame.Vector2
 
 border_color = (26, 14, 1)
 space_color = (145, 75, 0)
@@ -112,6 +113,7 @@ class Soldier:
         return getSubs(self,self.squad.soldiers)
     
     async def move(self,amount:tuple):
+        await asyncio.sleep(self.speed)
         x , y = self.pos
         self.Map[x,y] = Space((x,y),self.Map)
 
@@ -119,7 +121,11 @@ class Soldier:
 
         x , y = self.pos
         self.Map[x,y] = self
-        await asyncio.sleep(self.speed)
+
+    async def shoot(self, towards: V2, amount: int = 1):
+        x , y = self.pos
+        bullet = Bullet(self.Map.surface,V2(x,y),towards)
+        await bullet.shoot()
 
     def give_orders(self):
         for sub in getSubs(self,self.squad.soldiers):
@@ -136,17 +142,24 @@ class Order:
         self.prop = prop
 
 class Bullet:
-    def __init__(self, surface, startPos, endPos, speed = 1, power = 1):
+    def __init__(self, surface, startPos: V2, endPos: V2, speed = 1, power = 1):
         self.surface = surface
-        self.rect = pygame.Rect(startPos[0],startPos[1],1,1)
+        self.rect = pygame.Rect(startPos[0],startPos[1],50,50)
         self.startPos = startPos
         self.endPos = endPos
         self.speed = speed
         self.power = power
     
     def move(self):
-        self.rect.x += self.speed
-        self.rect.y += self.speed
+        direction = (self.startPos - self.endPos).normalize()
+        vel = direction * 1 * self.speed
+        self.rect.x += math.ceil(vel.x)
+        self.rect.y += math.ceil(vel.y)
+        self.draw()
+
+    async def shoot(self):
+        for i in range(screenDim[0]):
+            self.move()
 
     def draw(self):
         pygame.draw.rect(self.surface,(255,255,255),self.rect)
