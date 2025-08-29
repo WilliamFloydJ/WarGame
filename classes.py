@@ -2,7 +2,7 @@ import math, random, pygame, asyncio
 from screen import space_size,screenDim
 from functions import getLeader, getSubs
 from names import generate_name
-from utils import tupleAdd,emptyList
+from utils import tupleAdd,emptyList,real_ceil
 V2 = pygame.Vector2
 
 border_color = (26, 14, 1)
@@ -30,8 +30,8 @@ class Map:
         x, y = pos
         return self.map[y][x]
     
-    def __setitem__(self,pos,value):
-        x, y = pos
+    def __setitem__(self,pos:tuple,value):
+        x , y = pos
         self.map[y][x] = value
     
     def draw(self):
@@ -63,7 +63,7 @@ class Team:
         for squad_create in soldiers_create:
             squad = Squad([])
             for pos in squad_create:
-                sol = Soldier(pos,map,self,0,squad)
+                sol = Soldier(V2(pos),map,self,0,squad)
                 squad.soldiers.append(sol)
                 self.soldiers.append(sol)
             self.squads.append(squad)
@@ -81,7 +81,7 @@ class Squad:
         
 
 class Soldier:
-    def __init__(self,pos:tuple, map:Map, team:Team, rank:int, squad, orders = None):
+    def __init__(self,pos:V2, map:Map, team:Team, rank:int, squad, orders = None):
         self.pos = pos
         self.Map = map
         self.map = map.map
@@ -95,7 +95,7 @@ class Soldier:
         self.speed = random.uniform(1,3) 
 
     def __str__(self):
-        return f" {self.name} {tupleAdd(self.pos,(1,1))} {self.team.name} "
+        return f" {self.name} {self.pos + (1,1)} {self.team.name} "
 
     def draw(self):
         pygame.draw.rect(self.Map.surface,self.team.color,self.rect)
@@ -117,14 +117,18 @@ class Soldier:
         x , y = self.pos
         self.Map[x,y] = Space((x,y),self.Map)
 
-        self.updatePos(tupleAdd(self.pos,amount))
+        self.updatePos(self.pos + amount)
 
         x , y = self.pos
         self.Map[x,y] = self
+        await asyncio.sleep(self.speed * 0.01)
 
     async def shoot(self, towards: V2, amount: int = 1):
-        x , y = self.pos
-        bullet = Bullet(self.Map.surface,V2(x,y),towards)
+        x = self.rect.center[0]
+        y = self.rect.center[1]
+        t_x = towards.x
+        t_y = towards.y
+        bullet = Bullet(self.Map.surface,V2(x,y),V2(t_x*space_size,t_y*space_size))
         await bullet.shoot()
 
     def give_orders(self):
@@ -142,24 +146,30 @@ class Order:
         self.prop = prop
 
 class Bullet:
-    def __init__(self, surface, startPos: V2, endPos: V2, speed = 1, power = 1):
+    def __init__(self, surface:pygame.Surface, startPos: V2, endPos: V2, speed = 1, power = 1):
         self.surface = surface
-        self.rect = pygame.Rect(startPos[0],startPos[1],50,50)
+        self.rect = pygame.Rect(startPos.x,startPos.y,5,5)
         self.startPos = startPos
         self.endPos = endPos
+        self.actPos = startPos
         self.speed = speed
         self.power = power
     
     def move(self):
-        direction = (self.startPos - self.endPos).normalize()
-        vel = direction * 1 * self.speed
-        self.rect.x += math.ceil(vel.x)
-        self.rect.y += math.ceil(vel.y)
+        pygame.draw.rect(self.surface,(100,100,2),self.rect)
+        old_loc = self.rect.copy()
+        direction = (self.endPos - self.startPos).normalize()
+        vel = direction * 25 * self.speed
+        self.actPos += vel
+        self.rect.x = real_ceil(self.actPos.x)
+        self.rect.y = real_ceil(self.actPos.y)
         self.draw()
+        pygame.display.update([self.rect,old_loc])
 
     async def shoot(self):
         for i in range(screenDim[0]):
             self.move()
+            
 
     def draw(self):
         pygame.draw.rect(self.surface,(255,255,255),self.rect)
